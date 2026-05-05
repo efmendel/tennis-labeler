@@ -1,6 +1,6 @@
 VIDEO_FOLDER_PATH = "/Users/eddiemendel/Library/CloudStorage/GoogleDrive-edwardmendel24@gmail.com/.shortcut-targets-by-id/1QbcSISSJUS6MLlg1l4NOYEJGY8dmtuxR/Forehand_data/videos"
 
-GOOGLE_SHEET_NAME = "video_indexing"
+SPREADSHEET_ID = "1TMab7ihnYIlqF7Mj54-SXw68k06scDKMtf7F4B3FBaY"
 WORKSHEET_NAME = "Sheet1"
 CREDENTIALS_PATH = "credentials.json"
 

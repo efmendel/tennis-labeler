@@ -4,7 +4,7 @@ import os
 import gspread
 from google.auth.exceptions import GoogleAuthError
 
-from config import CREDENTIALS_PATH, GOOGLE_SHEET_NAME, LABELER_NAME, WORKSHEET_NAME
+from config import CREDENTIALS_PATH, LABELER_NAME, SPREADSHEET_ID, WORKSHEET_NAME
 
 BACKUP_CSV = "backup_labels.csv"
 
@@ -29,7 +29,7 @@ def _connect():
     if _worksheet is not None:
         return _worksheet
     gc = gspread.service_account(filename=CREDENTIALS_PATH)
-    sh = gc.open(GOOGLE_SHEET_NAME)
+    sh = gc.open_by_key(SPREADSHEET_ID)
     _worksheet = sh.worksheet(WORKSHEET_NAME)
     return _worksheet
 
@@ -105,6 +105,7 @@ if __name__ == "__main__":
         "backswing": 35,
         "forward_swing": 50,
         "follow_through": 70,
+        "swing_end": 90,
     }
     video = "__test_smoke__.mp4"
     print(f"\nAppending test row for '{video}'...")
