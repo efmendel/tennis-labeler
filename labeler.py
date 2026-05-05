@@ -146,6 +146,7 @@ class Labeler:
                                   bg="#333", highlightthickness=0)
         self.timeline.pack()
         self.timeline.bind("<Button-1>", self._on_timeline_click)
+        self.timeline.bind("<B1-Motion>", self._on_timeline_click)
 
         # Frame info bar
         info_bar = tk.Frame(self.root, bg="#1a1a1a")
