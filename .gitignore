@@ -1,0 +1,17 @@
+# Credentials — never commit these
+credentials.json
+
+# Runtime files
+backup_labels.csv
+skipped.txt
+errors.txt
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# macOS
+.DS_Store
