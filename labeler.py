@@ -49,7 +49,7 @@ PHASE_LABELS = {
 }
 
 PHASE_COLORS = {
-    "swing_start":    "#888888",
+    "swing_start":    "#c8a800",
     "unit_turn":      "#4a90d9",
     "backswing":      "#e67e22",
     "forward_swing":  "#27ae60",
