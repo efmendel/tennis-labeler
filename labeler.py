@@ -1,7 +1,8 @@
 import os
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
 
+import sheets
 from config import SHORTCUTS, VIDEO_EXTENSIONS, VIDEO_FOLDER_PATH
 from video_player import DISPLAY_H, DISPLAY_W, VideoPlayer
 from PIL import ImageTk
@@ -71,10 +72,12 @@ TIMELINE_H = 20
 
 def _load_video_list() -> list[str]:
     skipped = _load_skipped()
+    labeled = sheets.get_labeled_filenames()
+    excluded = skipped | labeled
     videos = []
     for f in sorted(os.listdir(VIDEO_FOLDER_PATH)):
         if any(f.endswith(ext) for ext in VIDEO_EXTENSIONS):
-            if f not in skipped:
+            if f not in excluded:
                 videos.append(os.path.join(VIDEO_FOLDER_PATH, f))
     return videos
 
@@ -210,6 +213,7 @@ class Labeler:
         self.root.bind("<space>",       lambda _: self._toggle_play())
         self.root.bind("n",             lambda _: self._save_and_next())
         self.root.bind("x",             lambda _: self._skip())
+        self.root.bind("g",             lambda _: self._goto_video())
 
         for phase in PHASE_ORDER:
             key = SHORTCUTS[phase]
@@ -390,10 +394,10 @@ class Labeler:
             if not proceed:
                 return
 
-        # Stubbed — will connect to sheets.py in Step 5
-        print(f"[stub] Would save: {os.path.basename(self.video_list[self.video_index])}")
-        print(f"[stub] Marks: {self.marks}")
-        print(f"[stub] FPS: {self.player.fps}  Total frames: {self.player.total_frames}")
+        filename = os.path.basename(self.video_list[self.video_index])
+        ok = sheets.append_label(filename, self.marks, self.player.fps, self.player.total_frames)
+        if not ok:
+            messagebox.showwarning("Sheet unavailable", "Could not reach Google Sheet — label saved to backup_labels.csv.")
 
         self._load_video(self.video_index + 1)
 
@@ -403,6 +407,37 @@ class Labeler:
         filename = os.path.basename(self.video_list[self.video_index])
         _append_skipped(filename)
         self._load_video(self.video_index + 1)
+
+    def _goto_video(self):
+        query = simpledialog.askstring(
+            "Go to video",
+            "Enter video number (e.g. 12) or partial name (e.g. azarenka):",
+            parent=self.root,
+        )
+        if not query:
+            return
+
+        query = query.strip()
+
+        # Try as a 1-based index first
+        if query.isdigit():
+            idx = int(query) - 1
+            if 0 <= idx < len(self.video_list):
+                self._load_video(idx)
+                return
+            messagebox.showerror("Not found", f"Video number {query} is out of range (1–{len(self.video_list)}).")
+            return
+
+        # Otherwise search by partial name (case-insensitive)
+        matches = [i for i, p in enumerate(self.video_list)
+                   if query.lower() in os.path.basename(p).lower()]
+        if len(matches) == 1:
+            self._load_video(matches[0])
+        elif len(matches) > 1:
+            names = "\n".join(f"  {i+1}. {os.path.basename(self.video_list[i])}" for i in matches[:10])
+            messagebox.showinfo("Multiple matches", f"Found {len(matches)} matches:\n{names}\n\nBe more specific.")
+        else:
+            messagebox.showerror("Not found", f"No video matching '{query}'.")
 
 
 # ---------------------------------------------------------------------------
