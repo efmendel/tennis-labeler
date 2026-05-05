@@ -6,6 +6,30 @@ from config import SHORTCUTS, VIDEO_EXTENSIONS, VIDEO_FOLDER_PATH
 from video_player import DISPLAY_H, DISPLAY_W, VideoPlayer
 from PIL import ImageTk
 
+
+class FlatButton(tk.Frame):
+    """Custom button that respects colors on macOS."""
+    def __init__(self, parent, text, command, bg, fg,
+                 hover_bg, font=("Helvetica", 11), padx=14, pady=6, **kwargs):
+        super().__init__(parent, bg=bg, cursor="hand2", **kwargs)
+        self._bg = bg
+        self._hover_bg = hover_bg
+        self._command = command
+        self._lbl = tk.Label(self, text=text, bg=bg, fg=fg,
+                             font=font, padx=padx, pady=pady)
+        self._lbl.pack(fill="both", expand=True)
+        for w in (self, self._lbl):
+            w.bind("<Button-1>", lambda _: command())
+            w.bind("<Enter>",    lambda _: self._set_bg(self._hover_bg))
+            w.bind("<Leave>",    lambda _: self._set_bg(self._bg))
+
+    def _set_bg(self, color):
+        self.config(bg=color)
+        self._lbl.config(bg=color)
+
+    def set_text(self, text):
+        self._lbl.config(text=text)
+
 PHASE_ORDER = [
     "swing_start",
     "unit_turn",
@@ -86,6 +110,7 @@ class Labeler:
         self.root = root
         self.root.title("Shotty Labeler")
         self.root.resizable(False, False)
+        self.root.configure(bg="#1a1a1a")
 
         self.video_list: list[str] = _load_video_list()
         self.video_index: int = 0
@@ -109,7 +134,7 @@ class Labeler:
         # Status bar
         self.status_var = tk.StringVar(value="Loading...")
         tk.Label(self.root, textvariable=self.status_var, anchor="w",
-                 bg="#222", fg="#ccc", padx=8).pack(fill="x")
+                 bg="#222", fg="#ccc", padx=8, pady=3).pack(fill="x")
 
         # Video frame
         self.video_label = tk.Label(self.root, bg="black",
@@ -118,13 +143,13 @@ class Labeler:
 
         # Timeline canvas
         self.timeline = tk.Canvas(self.root, width=DISPLAY_W, height=TIMELINE_H,
-                                  bg="#444", highlightthickness=0)
+                                  bg="#333", highlightthickness=0)
         self.timeline.pack()
         self.timeline.bind("<Button-1>", self._on_timeline_click)
 
         # Frame info bar
         info_bar = tk.Frame(self.root, bg="#1a1a1a")
-        info_bar.pack(fill="x", padx=8, pady=2)
+        info_bar.pack(fill="x", padx=8, pady=(4, 0))
         self.frame_info_var = tk.StringVar(value="Frame: 000 / 000   FPS: --   00:00 / 00:00")
         tk.Label(info_bar, textvariable=self.frame_info_var,
                  bg="#1a1a1a", fg="#ddd", font=("Courier", 11)).pack(side="left")
@@ -132,21 +157,23 @@ class Labeler:
         # Playback controls
         ctrl = tk.Frame(self.root, bg="#1a1a1a", pady=4)
         ctrl.pack()
-        btn_cfg = {"bg": "#333", "fg": "white", "relief": "flat",
-                   "padx": 10, "pady": 4, "cursor": "hand2"}
-        tk.Button(ctrl, text="◀◀", command=lambda: self._seek(self.target_frame - 5), **btn_cfg).pack(side="left", padx=2)
-        tk.Button(ctrl, text="◀",  command=lambda: self._seek(self.target_frame - 1), **btn_cfg).pack(side="left", padx=2)
-        self.play_btn = tk.Button(ctrl, text="▶ Play", command=self._toggle_play, **btn_cfg)
+        nav_kw = {"bg": "#2c2c2c", "fg": "#e0e0e0", "hover_bg": "#3d3d3d",
+                  "padx": 12, "pady": 4}
+        FlatButton(ctrl, "◀◀", lambda: self._seek(self.target_frame - 5), **nav_kw).pack(side="left", padx=2)
+        FlatButton(ctrl, "◀",  lambda: self._seek(self.target_frame - 1), **nav_kw).pack(side="left", padx=2)
+        self.play_btn = FlatButton(ctrl, "▶  Play", self._toggle_play,
+                                   bg="#1a4f99", fg="white", hover_bg="#2563b8",
+                                   font=("Helvetica", 11, "bold"), padx=16, pady=4)
         self.play_btn.pack(side="left", padx=2)
-        tk.Button(ctrl, text="▶",  command=lambda: self._seek(self.target_frame + 1), **btn_cfg).pack(side="left", padx=2)
-        tk.Button(ctrl, text="▶▶", command=lambda: self._seek(self.target_frame + 5), **btn_cfg).pack(side="left", padx=2)
+        FlatButton(ctrl, "▶",  lambda: self._seek(self.target_frame + 1), **nav_kw).pack(side="left", padx=2)
+        FlatButton(ctrl, "▶▶", lambda: self._seek(self.target_frame + 5), **nav_kw).pack(side="left", padx=2)
 
         # Phase panel
-        phase_frame = tk.Frame(self.root, bg="#1a1a1a", pady=6)
-        phase_frame.pack(fill="x", padx=12)
+        phase_frame = tk.Frame(self.root, bg="#1a1a1a")
+        phase_frame.pack(fill="x", padx=12, pady=(4, 0))
         tk.Label(phase_frame, text="PHASES MARKED:", bg="#1a1a1a",
                  fg="#aaa", font=("Helvetica", 10, "bold")).grid(row=0, column=0,
-                 columnspan=3, sticky="w", pady=(0, 4))
+                 columnspan=3, sticky="w", pady=(0, 2))
 
         self.phase_labels: dict[str, tk.Label] = {}
         for i, phase in enumerate(PHASE_ORDER):
@@ -156,19 +183,19 @@ class Labeler:
                      bg="#1a1a1a", fg=color, width=22, anchor="w",
                      font=("Helvetica", 10)).grid(row=i + 1, column=0, sticky="w")
             lbl = tk.Label(phase_frame, text="--", bg="#1a1a1a",
-                           fg="#888", width=16, anchor="w", font=("Courier", 10))
+                           fg="#555", width=16, anchor="w", font=("Courier", 10))
             lbl.grid(row=i + 1, column=1, sticky="w")
             self.phase_labels[phase] = lbl
 
         # Action buttons
-        action = tk.Frame(self.root, bg="#1a1a1a", pady=8)
+        action = tk.Frame(self.root, bg="#1a1a1a", pady=6)
         action.pack(fill="x", padx=12)
-        tk.Button(action, text="[X] Skip", command=self._skip,
-                  bg="#555", fg="white", relief="flat",
-                  padx=12, pady=6, cursor="hand2").pack(side="left")
-        tk.Button(action, text="[N] Save & Next", command=self._save_and_next,
-                  bg="#27ae60", fg="white", relief="flat",
-                  padx=12, pady=6, cursor="hand2").pack(side="right")
+        FlatButton(action, "[X]  Skip", self._skip,
+                   bg="#2c2c2c", fg="#e05555", hover_bg="#3a2020",
+                   padx=12, pady=5).pack(side="left")
+        FlatButton(action, "[N]  Save & Next  →", self._save_and_next,
+                   bg="#145a32", fg="white", hover_bg="#1e7d48",
+                   font=("Helvetica", 11, "bold"), padx=12, pady=5).pack(side="right")
 
     # -----------------------------------------------------------------------
     # Key bindings
@@ -244,12 +271,13 @@ class Labeler:
 
     def _start_play(self):
         self.playing = True
-        self.play_btn.config(text="⏸ Pause")
+        self.play_btn.set_text("⏸  Pause")
         self._play_tick()
 
     def _stop_play(self):
         self.playing = False
-        self.play_btn.config(text="▶ Play") if hasattr(self, "play_btn") else None
+        if hasattr(self, "play_btn"):
+            self.play_btn.set_text("▶  Play")
         if self.play_timer_id:
             self.root.after_cancel(self.play_timer_id)
             self.play_timer_id = None
