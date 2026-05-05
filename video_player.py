@@ -66,29 +66,36 @@ if __name__ == "__main__":
     label = tk.Label(root, image=photo)
     label.pack()
 
-    current = tk.IntVar(value=0)
+    target_frame = [0]   # mutable so inner functions can write to it
+    displayed_frame = [-1]
 
-    def show(n):
-        img = player.get_frame(n)
-        if img:
-            ph = ImageTk.PhotoImage(img)
-            label.config(image=ph)
-            label.image = ph
-            current.set(n)
-            info.config(text=f"Frame {n} / {player.total_frames - 1}")
+    def seek(n):
+        target_frame[0] = max(0, min(n, player.total_frames - 1))
+        info.config(text=f"Frame {target_frame[0]} / {player.total_frames - 1}")
+
+    def render_loop():
+        if target_frame[0] != displayed_frame[0]:
+            img = player.get_frame(target_frame[0])
+            if img:
+                ph = ImageTk.PhotoImage(img)
+                label.config(image=ph)
+                label.image = ph
+                displayed_frame[0] = target_frame[0]
+        root.after(33, render_loop)
 
     info = tk.Label(root, text=f"Frame 0 / {player.total_frames - 1}")
     info.pack()
 
     btn_frame = tk.Frame(root)
     btn_frame.pack()
-    tk.Button(btn_frame, text="◀", command=lambda: show(current.get() - 1)).pack(side="left")
-    tk.Button(btn_frame, text="▶", command=lambda: show(current.get() + 1)).pack(side="left")
+    tk.Button(btn_frame, text="◀", command=lambda: seek(target_frame[0] - 1)).pack(side="left")
+    tk.Button(btn_frame, text="▶", command=lambda: seek(target_frame[0] + 1)).pack(side="left")
 
-    root.bind("<Left>", lambda _: show(current.get() - 1))
-    root.bind("<Right>", lambda _: show(current.get() + 1))
-    root.bind("<Shift-Left>", lambda _: show(current.get() - 5))
-    root.bind("<Shift-Right>", lambda _: show(current.get() + 5))
+    root.bind("<Left>", lambda _: seek(target_frame[0] - 1))
+    root.bind("<Right>", lambda _: seek(target_frame[0] + 1))
+    root.bind("<Shift-Left>", lambda _: seek(target_frame[0] - 5))
+    root.bind("<Shift-Right>", lambda _: seek(target_frame[0] + 5))
 
+    render_loop()
     root.mainloop()
     player.close()
