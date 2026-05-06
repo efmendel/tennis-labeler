@@ -1,5 +1,6 @@
-# Credentials — never commit these
+# Credentials and personal config — never commit these
 credentials.json
+config.py
 
 # Runtime files
 backup_labels.csv
